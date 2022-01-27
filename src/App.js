@@ -13,8 +13,8 @@ import useQueryString from './hooks/useQueryString'
 function App() {
 
   const [user, setUser] = useState();
-  const [userId, setUserId] = useState();
   const [groceryList, setGroceryList] = useState();
+  const [userId, setUserId] = useState();
   const [error, setError] = useState();
 
   // Use a custom hook to subscribe to the grocery list ID provided as a URL query parameter
@@ -22,7 +22,8 @@ function App() {
 
   // Use an effect to authenticate and load the grocery list from the database
   useEffect(() => {
-    FirestoreService.authenticateAnonymously().then(userCredential => {
+    FirestoreService.authenticateAnonymously()
+    .then(userCredential => {
       setUserId(userCredential.user.uid);
       if (groceryListId) {
         FirestoreService.getGroceryList(groceryListId)

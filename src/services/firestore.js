@@ -1,6 +1,19 @@
-import * as firebase from "firebase/app";
-import "firebase/firestore";
-import "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { 
+    getFirestore,
+    query,
+    orderBy,
+    onSnapshot,
+    collection,
+    getDoc, 
+    getDocs, 
+    addDoc,
+    updateDoc,
+    doc, 
+    serverTimestamp, 
+    arrayUnion
+} from "firebase/firestore";
+import { getAuth, signInAnonymously} from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -8,17 +21,17 @@ const firebaseConfig = {
     projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app)
 
 export const authenticateAnonymously = () => {
-    return firebase.auth().signInAnonymously();
+    return signInAnonymously(getAuth(app));
 };
 
 export const createGroceryList = (userName, userId) => {
-    return db.collection('groceryLists')
-        .add({
-            created: firebase.firestore.FieldValue.serverTimestamp(),
+    const groceriesColRef = collection(db, 'groceryLists')
+    return addDoc(groceriesColRef, {
+            created: serverTimestamp(),
             createdBy: userId,
             users: [{ 
                 userId: userId,
@@ -27,32 +40,26 @@ export const createGroceryList = (userName, userId) => {
         });
 };
 
-export const getGroceryList = groceryListId => {
-    return db.collection('groceryLists')
-        .doc(groceryListId)
-        .get();
+export const getGroceryList = (groceryListId) => {
+    const groceryDocRef = doc(db, 'groceryLists', groceryListId)
+    return getDoc(groceryDocRef);
 };
 
-export const getGroceryListItems = groceryListId => {
-    return db.collection('groceryLists')
-        .doc(groceryListId)
-        .collection('items')
-        .get();
+export const getGroceryListItems = (groceryListId) => {
+    const itemsColRef = collection(db, 'groceryLists', groceryListId, 'items')
+    return getDocs(itemsColRef)
 }
 
-export const streamGroceryListItems = (groceryListId, observer) => {
-    return db.collection('groceryLists')
-        .doc(groceryListId)
-        .collection('items')
-        .orderBy('created')
-        .onSnapshot(observer);
+export const streamGroceryListItems = (groceryListId, snapshot, error) => {
+    const itemsColRef = collection(db, 'groceryLists', groceryListId, 'items')
+    const itemsQuery = query(itemsColRef, orderBy('created'))
+    return onSnapshot(itemsQuery, snapshot, error);
 };
 
 export const addUserToGroceryList = (userName, groceryListId, userId) => {
-    return db.collection('groceryLists')
-        .doc(groceryListId)
-        .update({
-            users: firebase.firestore.FieldValue.arrayUnion({ 
+    const groceryDocRef = doc(db, 'groceryLists', groceryListId)
+    return updateDoc(groceryDocRef, {
+            users: arrayUnion({ 
                 userId: userId,
                 name: userName
             })
@@ -63,14 +70,12 @@ export const addGroceryListItem = (item, groceryListId, userId) => {
     return getGroceryListItems(groceryListId)
         .then(querySnapshot => querySnapshot.docs)
         .then(groceryListItems => groceryListItems.find(groceryListItem => groceryListItem.data().name.toLowerCase() === item.toLowerCase()))
-        .then(matchingItem => {
+        .then( (matchingItem) => {
             if (!matchingItem) {
-                return db.collection('groceryLists')
-                    .doc(groceryListId)
-                    .collection('items')
-                    .add({
+                const itemsColRef = collection(db, 'groceryLists', groceryListId, 'items')
+                return addDoc(itemsColRef, {
                         name: item,
-                        created: firebase.firestore.FieldValue.serverTimestamp(),
+                        created: serverTimestamp(),
                         createdBy: userId
                     });
             }

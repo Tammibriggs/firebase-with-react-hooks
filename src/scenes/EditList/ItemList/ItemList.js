@@ -12,14 +12,14 @@ function ItemList(props) {
     // Use an effect hook to subscribe to the grocery list item stream and
     // automatically unsubscribe when the component unmounts.
     useEffect(() => {
-        const unsubscribe = FirestoreService.streamGroceryListItems(groceryListId, {
-            next: querySnapshot => {
+        const unsubscribe = FirestoreService.streamGroceryListItems(groceryListId,
+            (querySnapshot) => {
                 const updatedGroceryItems = 
-                    querySnapshot.docs.map(docSnapshot => docSnapshot.data());
+                querySnapshot.docs.map(docSnapshot => docSnapshot.data());
                 setGroceryItems(updatedGroceryItems);
             },
-            error: () => setError('grocery-list-item-get-fail')
-        });
+            (error) => setError('grocery-list-item-get-fail')
+        );
         return unsubscribe;
     }, [groceryListId, setGroceryItems]);
 
